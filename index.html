@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Two-Level Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#101012;
+    --panel:#19191b;
+    --line: rgba(244,239,228,0.13);
+    --ink:#f4efe4;
+    --ink-dim: rgba(244,239,228,0.55);
+    --red:#b31631;
+    --red-dim:#7e0f22;
+    --blue:#163f9e;
+    --blue-dim:#0e2a6e;
+    --gold:#c9a24a;
+    --danger:#ff5a45;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    height:100vh; height:100dvh; overflow:hidden;
+  }
+  .app{ display:flex; flex-direction:column; height:100vh; height:100dvh; }
+
+  .topbar{
+    flex:0 0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 16px;
+    background:var(--panel);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{ display:flex; align-items:baseline; gap:8px; }
+  .brand .mark{ font-family:'Oswald',sans-serif; font-weight:600; font-size:15px; letter-spacing:0.04em; color:var(--gold); }
+  .brand .sub{ font-size:11px; color:var(--ink-dim); }
+  .reset-btn{
+    background:transparent; border:1px solid var(--line); color:var(--ink-dim);
+    font-size:12px; padding:7px 12px; border-radius:6px; cursor:pointer;
+  }
+  .reset-btn:hover{ color:var(--ink); border-color:var(--ink-dim); }
+
+  .arena{ flex:1 1 auto; display:flex; min-height:0; }
+  .side{ flex:1 1 50%; display:flex; flex-direction:column; min-width:0; position:relative; }
+  .side.red{ background: linear-gradient(180deg, var(--red) 0%, var(--red-dim) 100%); }
+  .side.blue{ background: linear-gradient(180deg, var(--blue) 0%, var(--blue-dim) 100%); }
+  .divider{ width:1px; background:rgba(0,0,0,0.4); flex:0 0 auto; }
+
+  .side-head{
+    flex:0 0 auto; padding:12px 16px 4px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .name{
+    font-family:'Oswald',sans-serif; font-size:16px; font-weight:500; letter-spacing:0.02em;
+    background:transparent; border:none; color:var(--ink);
+    border-bottom:1px solid transparent; padding:2px 0; width:100%; min-width:0;
+  }
+  .name:focus{ outline:none; border-bottom-color:rgba(244,239,228,0.5); }
+  .dq-badge{
+    font-family:'Inter'; font-size:11px; font-weight:700; letter-spacing:0.04em;
+    color:var(--danger); background:rgba(0,0,0,0.28); border:1px solid var(--danger);
+    padding:3px 8px; border-radius:5px; display:none; white-space:nowrap;
+  }
+  .dq-badge.show{ display:inline-block; }
+
+  .total-wrap{
+    flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
+    padding:2px 12px 8px;
+  }
+  .total-label{ font-family:'Inter'; font-size:11px; letter-spacing:0.05em; color:rgba(244,239,228,0.7); margin-bottom:2px; }
+  .total{
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:min(17vw, 84px);
+    line-height:1; -webkit-user-select:none; user-select:none;
+  }
+
+  .levels{
+    flex:1 1 auto; display:flex; flex-direction:column; gap:8px;
+    padding:4px 14px 10px; min-height:0; justify-content:center;
+  }
+  .level-card{
+    background: rgba(0,0,0,0.20);
+    border:1px solid rgba(244,239,228,0.18);
+    border-radius:12px;
+    padding:10px 12px;
+  }
+  .level-head{
+    display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px;
+  }
+  .level-title{ font-family:'Oswald',sans-serif; font-size:12.5px; letter-spacing:0.03em; color:rgba(244,239,228,0.85); }
+  .level-score{
+    font-family:'Oswald',sans-serif; font-size:26px; font-weight:600;
+    font-variant-numeric: tabular-nums;
+  }
+  .level-max{ font-family:'Inter'; font-size:11px; color:rgba(244,239,228,0.55); }
+  .level-btns{ display:flex; gap:8px; }
+  .lbtn{
+    flex:1; border-radius:9px; border:1px solid rgba(244,239,228,0.28);
+    background: rgba(0,0,0,0.18); color:var(--ink);
+    font-family:'Oswald',sans-serif; font-size:15px; font-weight:600;
+    padding:10px 4px; cursor:pointer;
+  }
+  .lbtn:active{ background: rgba(0,0,0,0.34); transform:scale(0.97); }
+  .lbtn.dq{
+    flex: 0 0 34%;
+    background: rgba(255,90,69,0.16);
+    border-color: var(--danger);
+    color: var(--danger);
+    font-family:'Inter'; font-size:12px; font-weight:700; letter-spacing:0.03em;
+  }
+  .lbtn.dq:active{ background: rgba(255,90,69,0.3); }
+  .lbtn:disabled{ opacity:0.35; cursor:default; }
+  .undo-mini{
+    margin-top:6px; width:100%; background:transparent; border:1px dashed rgba(244,239,228,0.25);
+    color:rgba(244,239,228,0.7); border-radius:7px; padding:6px 4px; font-size:11px; cursor:pointer;
+  }
+  .undo-mini:disabled{ opacity:0.3; cursor:default; }
+
+  .bottombar{
+    flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+    padding:9px 12px; background:var(--panel); border-top:1px solid var(--line);
+    font-family:'Inter'; font-size:11px; color:var(--ink-dim);
+  }
+
+  @media (max-width: 620px){
+    .total{ font-size:min(15vw, 62px); }
+    .level-score{ font-size:22px; }
+    .name{ font-size:14px; }
+    .lbtn{ font-size:13px; padding:9px 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="mark">TKD JUDGING</span>
+      <span class="sub">two-level scoreboard</span>
+    </div>
+    <button class="reset-btn" id="resetAllBtn">Reset all</button>
+  </div>
+
+  <div class="arena">
+    <!-- RED -->
+    <div class="side red" data-side="red">
+      <div class="side-head">
+        <input class="name" id="nameRed" value="Red" maxlength="16">
+        <span class="dq-badge" id="dqBadgeRed">DQ</span>
+      </div>
+      <div class="total-wrap">
+        <div class="total-label">TOTAL</div>
+        <div class="total" id="totalRed">6.0</div>
+      </div>
+      <div class="levels">
+        <div class="level-card">
+          <div class="level-head">
+            <span class="level-title">LEVEL 1 · deduction</span>
+            <span><span class="level-score" id="l1Red">6.0</span><span class="level-max">/6</span></span>
+          </div>
+          <div class="level-btns">
+            <button class="lbtn" data-side="red" data-action="l1minus">−0.2</button>
+            <button class="lbtn dq" data-side="red" data-action="dq">DQ → 0</button>
+          </div>
+        </div>
+        <div class="level-card">
+          <div class="level-head">
+            <span class="level-title">LEVEL 2 · add-up</span>
+            <span><span class="level-score" id="l2Red">0.0</span><span class="level-max">/4</span></span>
+          </div>
+          <div class="level-btns">
+            <button class="lbtn" data-side="red" data-action="l2plus">+0.5</button>
+          </div>
+        </div>
+        <button class="undo-mini" data-side="red" id="undoRed">Undo last (Red)</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- BLUE -->
+    <div class="side blue" data-side="blue">
+      <div class="side-head">
+        <input class="name" id="nameBlue" value="Blue" maxlength="16">
+        <span class="dq-badge" id="dqBadgeBlue">DQ</span>
+      </div>
+      <div class="total-wrap">
+        <div class="total-label">TOTAL</div>
+        <div class="total" id="totalBlue">6.0</div>
+      </div>
+      <div class="levels">
+        <div class="level-card">
+          <div class="level-head">
+            <span class="level-title">LEVEL 1 · deduction</span>
+            <span><span class="level-score" id="l1Blue">6.0</span><span class="level-max">/6</span></span>
+          </div>
+          <div class="level-btns">
+            <button class="lbtn" data-side="blue" data-action="l1minus">−0.2</button>
+            <button class="lbtn dq" data-side="blue" data-action="dq">DQ → 0</button>
+          </div>
+        </div>
+        <div class="level-card">
+          <div class="level-head">
+            <span class="level-title">LEVEL 2 · add-up</span>
+            <span><span class="level-score" id="l2Blue">0.0</span><span class="level-max">/4</span></span>
+          </div>
+          <div class="level-btns">
+            <button class="lbtn" data-side="blue" data-action="l2plus">+0.5</button>
+          </div>
+        </div>
+        <button class="undo-mini" data-side="blue" id="undoBlue">Undo last (Blue)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottombar">Level 1 starts at 6.0 · Level 2 starts at 0.0 · Total max 10.0</div>
+</div>
+
+<script>
+(function(){
+  const L1_MAX = 6.0, L1_STEP = 0.2;
+  const L2_MAX = 4.0, L2_STEP = 0.5;
+
+  const sides = ['red','blue'];
+  const state = {
+    red:  { l1: L1_MAX, l2: 0, dq:false, history:[] },
+    blue: { l1: L1_MAX, l2: 0, dq:false, history:[] }
+  };
+
+  const round1 = n => Math.round(n*10)/10;
+
+  const el = id => document.getElementById(id);
+  const ids = {
+    red:  { total: el('totalRed'),  l1: el('l1Red'),  l2: el('l2Red'),  dqBadge: el('dqBadgeRed'),  undo: el('undoRed') },
+    blue: { total: el('totalBlue'), l1: el('l1Blue'), l2: el('l2Blue'), dqBadge: el('dqBadgeBlue'), undo: el('undoBlue') }
+  };
+
+  function render(side){
+    const s = state[side];
+    const r = ids[side];
+    r.l1.textContent = round1(s.l1).toFixed(1);
+    r.l2.textContent = round1(s.l2).toFixed(1);
+    r.total.textContent = round1(s.l1 + s.l2).toFixed(1);
+    r.dqBadge.classList.toggle('show', s.dq);
+    r.undo.disabled = s.history.length === 0;
+  }
+
+  function snapshot(side){
+    const s = state[side];
+    return { l1: s.l1, l2: s.l2, dq: s.dq };
+  }
+
+  function l1Minus(side){
+    const s = state[side];
+    s.history.push(snapshot(side));
+    s.l1 = round1(Math.max(0, s.l1 - L1_STEP));
+    render(side);
+  }
+
+  function l2Plus(side){
+    const s = state[side];
+    s.history.push(snapshot(side));
+    s.l2 = round1(Math.min(L2_MAX, s.l2 + L2_STEP));
+    render(side);
+  }
+
+  function dq(side){
+    const s = state[side];
+    s.history.push(snapshot(side));
+    s.l1 = 0;
+    s.dq = true;
+    render(side);
+  }
+
+  function undo(side){
+    const s = state[side];
+    if(s.history.length === 0) return;
+    const prev = s.history.pop();
+    s.l1 = prev.l1; s.l2 = prev.l2; s.dq = prev.dq;
+    render(side);
+  }
+
+  document.querySelectorAll('.lbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const side = btn.dataset.side;
+      const action = btn.dataset.action;
+      if(action === 'l1minus') l1Minus(side);
+      if(action === 'l2plus') l2Plus(side);
+      if(action === 'dq') dq(side);
+    });
+  });
+
+  sides.forEach(side => {
+    ids[side].undo.addEventListener('click', () => undo(side));
+  });
+
+  el('resetAllBtn').addEventListener('click', () => {
+    if(!confirm('Reset both scores? This clears Level 1, Level 2 and DQ status.')) return;
+    sides.forEach(side => {
+      state[side] = { l1: L1_MAX, l2: 0, dq:false, history:[] };
+      render(side);
+    });
+  });
+
+  sides.forEach(render);
+})();
+</script>
+</body>
+</html>
