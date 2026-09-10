@@ -39,6 +39,30 @@
     font-size:12px; padding:7px 12px; border-radius:6px; cursor:pointer;
   }
   .reset-btn:hover{ color:var(--ink); border-color:var(--ink-dim); }
+  .topbar-actions{ display:flex; gap:8px; }
+
+  /* ---- rotate-to-landscape prompt (mobile portrait) ---- */
+  .rotate-overlay{
+    position:fixed; inset:0; z-index:60; background:var(--bg);
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    gap:16px; padding:28px; text-align:center;
+  }
+  .rotate-overlay.show{ display:flex; }
+  .rotate-icon{
+    width:56px; height:56px; border:3px solid var(--gold); border-radius:8px;
+    animation: rotateHint 1.6s ease-in-out infinite;
+  }
+  @keyframes rotateHint{
+    0%,20%{ transform:rotate(0deg); }
+    50%,70%{ transform:rotate(-90deg); }
+    100%{ transform:rotate(-90deg); }
+  }
+  .rotate-overlay h2{ font-family:'Oswald',sans-serif; font-size:18px; font-weight:500; margin:0; }
+  .rotate-overlay p{ font-family:'Inter'; font-size:12.5px; color:var(--ink-dim); margin:0; max-width:260px; }
+  .rotate-continue{
+    margin-top:6px; background:transparent; border:1px solid var(--line); color:var(--ink-dim);
+    font-size:12px; padding:8px 14px; border-radius:7px; cursor:pointer;
+  }
 
   .arena{ flex:1 1 auto; display:flex; min-height:0; }
   .side{ flex:1 1 50%; display:flex; flex-direction:column; min-width:0; position:relative; overflow:hidden; }
@@ -127,6 +151,25 @@
     .lbtn{ font-size:12.5px; padding:11px 2px; }
     .name{ font-size:13px; }
   }
+
+  /* ---- phone in landscape / fullscreen: compress vertical chrome ---- */
+  @media (orientation: landscape) and (max-height: 480px){
+    .topbar{ padding:5px 12px; }
+    .brand .mark{ font-size:12px; }
+    .brand .sub{ display:none; }
+    .side-head{ padding:4px 12px 0; }
+    .name{ font-size:13px; }
+    .total{ font-size:min(8vw, 60px); }
+    .total-label{ margin-bottom:0; }
+    .btn-col{ width:60px; gap:5px; padding:4px 6px; }
+    .lbtn{ padding:7px 2px; font-size:12px; }
+    .lbtn.dq{ padding:6px 2px; }
+    .undo-mini{ padding:4px 2px; }
+    .readout{ padding:5px 8px; }
+    .readout .rscore{ font-size:16px; }
+    .level3-note{ font-size:9px; }
+    .bottombar{ padding:4px 12px; font-size:9.5px; }
+  }
 </style>
 </head>
 <body>
@@ -137,7 +180,17 @@
       <span class="mark">TKD JUDGING</span>
       <span class="sub">two-level scoreboard</span>
     </div>
-    <button class="reset-btn" id="resetAllBtn">Reset all</button>
+    <div class="topbar-actions">
+      <button class="reset-btn" id="fullscreenBtn">Full screen</button>
+      <button class="reset-btn" id="resetAllBtn">Reset all</button>
+    </div>
+  </div>
+
+  <div class="rotate-overlay" id="rotateOverlay">
+    <div class="rotate-icon"></div>
+    <h2>Rotate your phone</h2>
+    <p>This scoreboard is built for landscape — turn your phone sideways for the full-screen layout.</p>
+    <button class="rotate-continue" id="rotateContinueBtn">Continue in portrait</button>
   </div>
 
   <div class="arena">
@@ -304,6 +357,53 @@
     });
     ids[side].undo.addEventListener('click', () => undo(side));
   });
+
+  // ---- fullscreen + landscape prompt ----
+  const fsBtn = el('fullscreenBtn');
+  const rotateOverlay = el('rotateOverlay');
+  let dismissedPortraitPrompt = false;
+
+  function enterFullscreen(){
+    const d = document.documentElement;
+    const req = d.requestFullscreen || d.webkitRequestFullscreen || d.msRequestFullscreen;
+    if(req){ req.call(d).catch(() => {}); }
+    if(screen.orientation && screen.orientation.lock){
+      screen.orientation.lock('landscape').catch(() => {});
+    }
+  }
+  function exitFullscreen(){
+    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    if(exit){ exit.call(document).catch(() => {}); }
+  }
+  function isFullscreen(){
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+  function updateFsBtn(){
+    fsBtn.textContent = isFullscreen() ? 'Exit full screen' : 'Full screen';
+  }
+  fsBtn.addEventListener('click', () => {
+    isFullscreen() ? exitFullscreen() : enterFullscreen();
+  });
+  document.addEventListener('fullscreenchange', updateFsBtn);
+  document.addEventListener('webkitfullscreenchange', updateFsBtn);
+
+  const portraitQuery = window.matchMedia('(orientation: portrait)');
+  function checkOrientation(){
+    const isSmallScreen = Math.min(window.innerWidth, window.innerHeight) < 700;
+    if(portraitQuery.matches && isSmallScreen && !dismissedPortraitPrompt){
+      rotateOverlay.classList.add('show');
+    } else {
+      rotateOverlay.classList.remove('show');
+    }
+    if(!portraitQuery.matches){ dismissedPortraitPrompt = false; }
+  }
+  portraitQuery.addEventListener ? portraitQuery.addEventListener('change', checkOrientation) : portraitQuery.addListener(checkOrientation);
+  window.addEventListener('resize', checkOrientation);
+  el('rotateContinueBtn').addEventListener('click', () => {
+    dismissedPortraitPrompt = true;
+    rotateOverlay.classList.remove('show');
+  });
+  checkOrientation();
 
   el('resetAllBtn').addEventListener('click', () => {
     if(!confirm('Reset both scores? This clears Level 1, Level 2 and DQ status.')) return;
