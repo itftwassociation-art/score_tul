@@ -13,10 +13,8 @@
     --line: rgba(244,239,228,0.13);
     --ink:#f4efe4;
     --ink-dim: rgba(244,239,228,0.55);
-    --red:#b31631;
-    --red-dim:#7e0f22;
-    --blue:#163f9e;
-    --blue-dim:#0e2a6e;
+    --red:#b31631; --red-dim:#7e0f22;
+    --blue:#163f9e; --blue-dim:#0e2a6e;
     --gold:#c9a24a;
     --danger:#ff5a45;
   }
@@ -30,11 +28,8 @@
   .app{ display:flex; flex-direction:column; height:100vh; height:100dvh; }
 
   .topbar{
-    flex:0 0 auto;
-    display:flex; align-items:center; justify-content:space-between;
-    padding:10px 16px;
-    background:var(--panel);
-    border-bottom:1px solid var(--line);
+    flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line);
   }
   .brand{ display:flex; align-items:baseline; gap:8px; }
   .brand .mark{ font-family:'Oswald',sans-serif; font-weight:600; font-size:15px; letter-spacing:0.04em; color:var(--gold); }
@@ -46,17 +41,17 @@
   .reset-btn:hover{ color:var(--ink); border-color:var(--ink-dim); }
 
   .arena{ flex:1 1 auto; display:flex; min-height:0; }
-  .side{ flex:1 1 50%; display:flex; flex-direction:column; min-width:0; position:relative; }
+  .side{ flex:1 1 50%; display:flex; flex-direction:column; min-width:0; position:relative; overflow:hidden; }
   .side.red{ background: linear-gradient(180deg, var(--red) 0%, var(--red-dim) 100%); }
   .side.blue{ background: linear-gradient(180deg, var(--blue) 0%, var(--blue-dim) 100%); }
   .divider{ width:1px; background:rgba(0,0,0,0.4); flex:0 0 auto; }
 
   .side-head{
-    flex:0 0 auto; padding:12px 16px 4px;
-    display:flex; align-items:center; justify-content:space-between;
+    flex:0 0 auto; padding:10px 14px 0;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
   }
   .name{
-    font-family:'Oswald',sans-serif; font-size:16px; font-weight:500; letter-spacing:0.02em;
+    font-family:'Oswald',sans-serif; font-size:15px; font-weight:500; letter-spacing:0.02em;
     background:transparent; border:none; color:var(--ink);
     border-bottom:1px solid transparent; padding:2px 0; width:100%; min-width:0;
   }
@@ -68,69 +63,69 @@
   }
   .dq-badge.show{ display:inline-block; }
 
-  .total-wrap{
-    flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
-    padding:2px 12px 8px;
-  }
-  .total-label{ font-family:'Inter'; font-size:11px; letter-spacing:0.05em; color:rgba(244,239,228,0.7); margin-bottom:2px; }
-  .total{
-    font-family:'Oswald',sans-serif; font-weight:700; font-size:min(17vw, 84px);
-    line-height:1; -webkit-user-select:none; user-select:none;
-  }
+  /* mirrored body: outer button column + inner readout column */
+  .side-body{ flex:1 1 auto; display:flex; flex-direction:row; min-height:0; }
+  .side.blue .side-body{ flex-direction:row-reverse; }
 
-  .levels{
-    flex:1 1 auto; display:flex; flex-direction:column; gap:8px;
-    padding:4px 14px 10px; min-height:0; justify-content:center;
+  .btn-col{
+    flex:0 0 auto; width:78px; display:flex; flex-direction:column; gap:8px;
+    padding:8px; justify-content:center; align-items:stretch;
   }
-  .level-card{
-    background: rgba(0,0,0,0.20);
-    border:1px solid rgba(244,239,228,0.18);
-    border-radius:12px;
-    padding:10px 12px;
-  }
-  .level-head{
-    display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px;
-  }
-  .level-title{ font-family:'Oswald',sans-serif; font-size:12.5px; letter-spacing:0.03em; color:rgba(244,239,228,0.85); }
-  .level-score{
-    font-family:'Oswald',sans-serif; font-size:26px; font-weight:600;
-    font-variant-numeric: tabular-nums;
-  }
-  .level-max{ font-family:'Inter'; font-size:11px; color:rgba(244,239,228,0.55); }
-  .level-btns{ display:flex; gap:8px; }
   .lbtn{
-    flex:1; border-radius:9px; border:1px solid rgba(244,239,228,0.28);
-    background: rgba(0,0,0,0.18); color:var(--ink);
+    border-radius:10px; border:1px solid rgba(244,239,228,0.3);
+    background: rgba(0,0,0,0.20); color:var(--ink);
     font-family:'Oswald',sans-serif; font-size:15px; font-weight:600;
-    padding:10px 4px; cursor:pointer;
+    padding:14px 2px; cursor:pointer; text-align:center;
   }
-  .lbtn:active{ background: rgba(0,0,0,0.34); transform:scale(0.97); }
-  .lbtn.dq{
-    flex: 0 0 34%;
-    background: rgba(255,90,69,0.16);
-    border-color: var(--danger);
-    color: var(--danger);
-    font-family:'Inter'; font-size:12px; font-weight:700; letter-spacing:0.03em;
-  }
-  .lbtn.dq:active{ background: rgba(255,90,69,0.3); }
+  .lbtn small{ display:block; font-family:'Inter'; font-size:9px; font-weight:500; letter-spacing:0.03em; color: rgba(244,239,228,0.65); margin-top:2px; }
+  .lbtn:active{ background: rgba(0,0,0,0.36); transform:scale(0.96); }
   .lbtn:disabled{ opacity:0.35; cursor:default; }
+  .lbtn.dq{
+    background: rgba(255,90,69,0.16); border-color: var(--danger); color: var(--danger);
+    font-family:'Inter'; font-size:12px; font-weight:700; letter-spacing:0.03em; padding:12px 2px;
+  }
+  .lbtn.dq:active{ background: rgba(255,90,69,0.32); }
   .undo-mini{
-    margin-top:6px; width:100%; background:transparent; border:1px dashed rgba(244,239,228,0.25);
-    color:rgba(244,239,228,0.7); border-radius:7px; padding:6px 4px; font-size:11px; cursor:pointer;
+    background:transparent; border:1px dashed rgba(244,239,228,0.28); color: rgba(244,239,228,0.72);
+    border-radius:8px; padding:8px 2px; font-family:'Inter'; font-size:10px; cursor:pointer;
   }
   .undo-mini:disabled{ opacity:0.3; cursor:default; }
 
+  .main-col{ flex:1 1 auto; display:flex; flex-direction:column; min-width:0; min-height:0; justify-content:center; gap:8px; padding:4px 10px; }
+
+  .total-wrap{ display:flex; flex-direction:column; align-items:center; }
+  .total-label{ font-family:'Inter'; font-size:11px; letter-spacing:0.05em; color:rgba(244,239,228,0.7); margin-bottom:2px; }
+  .total{
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:min(15vw, 76px);
+    line-height:1; user-select:none;
+  }
+  .total.zeroed{ color: var(--danger); }
+
+  .readout-row{ display:flex; gap:8px; }
+  .readout{
+    flex:1; background: rgba(0,0,0,0.20); border:1px solid rgba(244,239,228,0.18);
+    border-radius:10px; padding:8px 10px; text-align:center;
+  }
+  .readout .rtitle{ font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:0.03em; color: rgba(244,239,228,0.75); }
+  .readout .rscore{ font-family:'Oswald',sans-serif; font-size:22px; font-weight:600; font-variant-numeric: tabular-nums; }
+  .readout .rmax{ font-family:'Inter'; font-size:10px; color: rgba(244,239,228,0.5); }
+
+  .level3-note{
+    text-align:center; font-family:'Inter'; font-size:10.5px; color: rgba(244,239,228,0.6);
+  }
+
   .bottombar{
     flex:0 0 auto; display:flex; align-items:center; justify-content:center;
-    padding:9px 12px; background:var(--panel); border-top:1px solid var(--line);
-    font-family:'Inter'; font-size:11px; color:var(--ink-dim);
+    padding:8px 12px; background:var(--panel); border-top:1px solid var(--line);
+    font-family:'Inter'; font-size:11px; color:var(--ink-dim); text-align:center;
   }
 
   @media (max-width: 620px){
-    .total{ font-size:min(15vw, 62px); }
-    .level-score{ font-size:22px; }
-    .name{ font-size:14px; }
-    .lbtn{ font-size:13px; padding:9px 4px; }
+    .total{ font-size:min(13vw, 54px); }
+    .readout .rscore{ font-size:18px; }
+    .btn-col{ width:62px; }
+    .lbtn{ font-size:12.5px; padding:11px 2px; }
+    .name{ font-size:13px; }
   }
 </style>
 </head>
@@ -150,33 +145,34 @@
     <div class="side red" data-side="red">
       <div class="side-head">
         <input class="name" id="nameRed" value="Red" maxlength="16">
-        <span class="dq-badge" id="dqBadgeRed">DQ</span>
+        <span class="dq-badge" id="dqBadgeRed">DQ · 0</span>
       </div>
-      <div class="total-wrap">
-        <div class="total-label">TOTAL</div>
-        <div class="total" id="totalRed">6.0</div>
-      </div>
-      <div class="levels">
-        <div class="level-card">
-          <div class="level-head">
-            <span class="level-title">LEVEL 1 · deduction</span>
-            <span><span class="level-score" id="l1Red">6.0</span><span class="level-max">/6</span></span>
-          </div>
-          <div class="level-btns">
-            <button class="lbtn" data-side="red" data-action="l1minus">−0.2</button>
-            <button class="lbtn dq" data-side="red" data-action="dq">DQ → 0</button>
-          </div>
+      <div class="side-body">
+        <div class="btn-col">
+          <button class="lbtn" data-side="red" data-action="l1minus">−0.2<small>LEVEL 1</small></button>
+          <button class="lbtn" data-side="red" data-action="l2plus">+0.5<small>LEVEL 2</small></button>
+          <button class="lbtn dq" data-side="red" data-action="dq">DQ<small style="color:var(--danger)">LEVEL 3</small></button>
+          <button class="undo-mini" data-side="red" id="undoRed">Undo last</button>
         </div>
-        <div class="level-card">
-          <div class="level-head">
-            <span class="level-title">LEVEL 2 · add-up</span>
-            <span><span class="level-score" id="l2Red">0.0</span><span class="level-max">/4</span></span>
+        <div class="main-col">
+          <div class="total-wrap">
+            <div class="total-label">TOTAL</div>
+            <div class="total" id="totalRed">6.0</div>
           </div>
-          <div class="level-btns">
-            <button class="lbtn" data-side="red" data-action="l2plus">+0.5</button>
+          <div class="readout-row">
+            <div class="readout">
+              <div class="rtitle">LEVEL 1</div>
+              <div class="rscore" id="l1Red">6.0</div>
+              <div class="rmax">/ 6.0</div>
+            </div>
+            <div class="readout">
+              <div class="rtitle">LEVEL 2</div>
+              <div class="rscore" id="l2Red">0.0</div>
+              <div class="rmax">/ 4.0</div>
+            </div>
           </div>
+          <div class="level3-note">Level 3 — DQ zeroes the total score</div>
         </div>
-        <button class="undo-mini" data-side="red" id="undoRed">Undo last (Red)</button>
       </div>
     </div>
 
@@ -186,38 +182,39 @@
     <div class="side blue" data-side="blue">
       <div class="side-head">
         <input class="name" id="nameBlue" value="Blue" maxlength="16">
-        <span class="dq-badge" id="dqBadgeBlue">DQ</span>
+        <span class="dq-badge" id="dqBadgeBlue">DQ · 0</span>
       </div>
-      <div class="total-wrap">
-        <div class="total-label">TOTAL</div>
-        <div class="total" id="totalBlue">6.0</div>
-      </div>
-      <div class="levels">
-        <div class="level-card">
-          <div class="level-head">
-            <span class="level-title">LEVEL 1 · deduction</span>
-            <span><span class="level-score" id="l1Blue">6.0</span><span class="level-max">/6</span></span>
-          </div>
-          <div class="level-btns">
-            <button class="lbtn" data-side="blue" data-action="l1minus">−0.2</button>
-            <button class="lbtn dq" data-side="blue" data-action="dq">DQ → 0</button>
-          </div>
+      <div class="side-body">
+        <div class="btn-col">
+          <button class="lbtn" data-side="blue" data-action="l1minus">−0.2<small>LEVEL 1</small></button>
+          <button class="lbtn" data-side="blue" data-action="l2plus">+0.5<small>LEVEL 2</small></button>
+          <button class="lbtn dq" data-side="blue" data-action="dq">DQ<small style="color:var(--danger)">LEVEL 3</small></button>
+          <button class="undo-mini" data-side="blue" id="undoBlue">Undo last</button>
         </div>
-        <div class="level-card">
-          <div class="level-head">
-            <span class="level-title">LEVEL 2 · add-up</span>
-            <span><span class="level-score" id="l2Blue">0.0</span><span class="level-max">/4</span></span>
+        <div class="main-col">
+          <div class="total-wrap">
+            <div class="total-label">TOTAL</div>
+            <div class="total" id="totalBlue">6.0</div>
           </div>
-          <div class="level-btns">
-            <button class="lbtn" data-side="blue" data-action="l2plus">+0.5</button>
+          <div class="readout-row">
+            <div class="readout">
+              <div class="rtitle">LEVEL 1</div>
+              <div class="rscore" id="l1Blue">6.0</div>
+              <div class="rmax">/ 6.0</div>
+            </div>
+            <div class="readout">
+              <div class="rtitle">LEVEL 2</div>
+              <div class="rscore" id="l2Blue">0.0</div>
+              <div class="rmax">/ 4.0</div>
+            </div>
           </div>
+          <div class="level3-note">Level 3 — DQ zeroes the total score</div>
         </div>
-        <button class="undo-mini" data-side="blue" id="undoBlue">Undo last (Blue)</button>
       </div>
     </div>
   </div>
 
-  <div class="bottombar">Level 1 starts at 6.0 · Level 2 starts at 0.0 · Total max 10.0</div>
+  <div class="bottombar">Level 1 starts at 6.0 · Level 2 starts at 0.0 · Level 3 DQ zeroes the total</div>
 </div>
 
 <script>
@@ -232,21 +229,31 @@
   };
 
   const round1 = n => Math.round(n*10)/10;
-
+  const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
   const el = id => document.getElementById(id);
-  const ids = {
-    red:  { total: el('totalRed'),  l1: el('l1Red'),  l2: el('l2Red'),  dqBadge: el('dqBadgeRed'),  undo: el('undoRed') },
-    blue: { total: el('totalBlue'), l1: el('l1Blue'), l2: el('l2Blue'), dqBadge: el('dqBadgeBlue'), undo: el('undoBlue') }
-  };
+  const ids = {};
+  sides.forEach(side => {
+    ids[side] = {
+      total: el('total'+cap(side)),
+      l1: el('l1'+cap(side)),
+      l2: el('l2'+cap(side)),
+      dqBadge: el('dqBadge'+cap(side)),
+      undo: el('undo'+cap(side)),
+      btns: document.querySelectorAll('.lbtn[data-side="'+side+'"]')
+    };
+  });
 
   function render(side){
     const s = state[side];
     const r = ids[side];
     r.l1.textContent = round1(s.l1).toFixed(1);
     r.l2.textContent = round1(s.l2).toFixed(1);
-    r.total.textContent = round1(s.l1 + s.l2).toFixed(1);
+    const totalVal = s.dq ? 0 : round1(s.l1 + s.l2);
+    r.total.textContent = totalVal.toFixed(1);
+    r.total.classList.toggle('zeroed', s.dq);
     r.dqBadge.classList.toggle('show', s.dq);
     r.undo.disabled = s.history.length === 0;
+    r.btns.forEach(b => { if(b.dataset.action !== 'dq') b.disabled = s.dq; });
   }
 
   function snapshot(side){
@@ -256,6 +263,7 @@
 
   function l1Minus(side){
     const s = state[side];
+    if(s.dq) return;
     s.history.push(snapshot(side));
     s.l1 = round1(Math.max(0, s.l1 - L1_STEP));
     render(side);
@@ -263,6 +271,7 @@
 
   function l2Plus(side){
     const s = state[side];
+    if(s.dq) return;
     s.history.push(snapshot(side));
     s.l2 = round1(Math.min(L2_MAX, s.l2 + L2_STEP));
     render(side);
@@ -270,8 +279,8 @@
 
   function dq(side){
     const s = state[side];
+    if(s.dq) return;
     s.history.push(snapshot(side));
-    s.l1 = 0;
     s.dq = true;
     render(side);
   }
@@ -284,17 +293,15 @@
     render(side);
   }
 
-  document.querySelectorAll('.lbtn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const side = btn.dataset.side;
-      const action = btn.dataset.action;
-      if(action === 'l1minus') l1Minus(side);
-      if(action === 'l2plus') l2Plus(side);
-      if(action === 'dq') dq(side);
-    });
-  });
-
   sides.forEach(side => {
+    ids[side].btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        if(action === 'l1minus') l1Minus(side);
+        if(action === 'l2plus') l2Plus(side);
+        if(action === 'dq') dq(side);
+      });
+    });
     ids[side].undo.addEventListener('click', () => undo(side));
   });
 
