@@ -1,0 +1,382 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ITF TUL 計分板</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@500;700&display=swap">
+<style>
+  /* Layout: two full-colour side panels (red / blue). Each panel = name + total, two phase controls (big deduct, add), undo + zero. */
+  :root {
+    --bg: #E8EBF0;
+    --fg: #141A24;
+    --muted: #586172;
+    --line: #C6CCD7;
+    --red: #C42E33;
+    --blue: #1D4DBB;
+    --ink: #FFFFFF;
+    --font-display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+    --font-body: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1117;
+      --fg: #E7EBF2;
+      --muted: #98A2B3;
+      --line: #262D3A;
+      --red: #B02429;
+      --blue: #1A429E;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D1117;
+    --fg: #E7EBF2;
+    --muted: #98A2B3;
+    --line: #262D3A;
+    --red: #B02429;
+    --blue: #1A429E;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    padding-block: 8px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+  button:focus-visible, input:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+  /* top bar */
+  .bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .bar-top h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .bar-top h1 span { font-family: var(--font-body); font-size: 15px; letter-spacing: .08em; margin-left: 8px; color: var(--muted); font-weight: 500; }
+  .rule { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #reset {
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    background: transparent;
+    border: 2px solid var(--line);
+    color: var(--fg);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  #reset.confirm { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+  /* board */
+  main {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, minmax(340px, 1fr));
+  }
+  @media (min-aspect-ratio: 5/4) {
+    main { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(300px, 1fr); }
+  }
+
+  .panel {
+    --side: var(--red);
+    background: var(--side);
+    color: var(--ink);
+    border-radius: 14px;
+    padding: 12px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    container-type: size;
+    min-width: 0;
+    position: relative;
+  }
+  .panel.blue { --side: var(--blue); }
+
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .who { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .chip-row { display: flex; align-items: center; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    background: rgba(0,0,0,.28);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-weight: 700; font-size: 20px;
+  }
+  .chip i { font-style: normal; font-family: var(--font-display); letter-spacing: .12em; font-size: 13px; opacity: .85; }
+  .tag { background: #fff; color: #111; font-weight: 700; font-size: 13px; padding: 3px 8px; border-radius: 6px; }
+
+  .total {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18vmin;
+    font-size: min(22cqh, 30cqw);
+    line-height: .86;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    letter-spacing: .01em;
+  }
+  .total.bump { animation: bump .22s ease-out; }
+  @keyframes bump { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+  .phases { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; min-height: 0; }
+  .phase { display: flex; flex-direction: column; gap: 6px; min-height: 0; min-width: 0; }
+  .ph-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; }
+  .ph-label { font-weight: 700; font-size: 14px; line-height: 1.15; }
+  .ph-label small { display: block; font-weight: 500; font-size: 12px; opacity: .85; }
+  .ph-read { font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ph-read small { font-size: 16px; opacity: .8; font-weight: 600; }
+  .meter { height: 6px; border-radius: 3px; background: rgba(0,0,0,.3); overflow: hidden; flex: none; }
+  .meter b { display: block; height: 100%; background: #fff; width: 100%; transition: width .15s; }
+
+  .big {
+    flex: 1;
+    min-height: 56px;
+    border-radius: 12px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: transform .06s;
+  }
+  .big:active:not(:disabled) { transform: scale(.97); }
+  .big:disabled { opacity: .35; cursor: not-allowed; }
+  .big.deduct { background: #fff; color: var(--side); font-size: 16vmin; font-size: clamp(44px, 24cqh, 110px); }
+  .big.add { background: rgba(0,0,0,.32); color: #fff; border: 2px solid rgba(255,255,255,.7); font-size: 11vmin; font-size: clamp(34px, 15cqh, 72px); }
+
+  .foot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .small {
+    min-height: 46px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.3);
+    color: #fff;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .small:disabled { opacity: .35; cursor: not-allowed; }
+  .small.zero.on { background: #fff; color: var(--side); }
+
+  .panel.zeroed .phases { opacity: .45; }
+
+  @media (max-height: 460px) {
+    body { gap: 6px; padding-block: 4px; }
+    .bar-top h1 { font-size: 20px; }
+    .rule { display: none; }
+    #reset { min-height: 34px; }
+    .panel { padding: 8px; gap: 6px; }
+    .small { min-height: 38px; }
+  }
+  /* Side-by-side: blue panel is the left-right mirror of the red panel */
+  @media (min-aspect-ratio: 5/4) {
+    .panel.blue .head { flex-direction: row-reverse; }
+    .panel.blue .who { align-items: flex-end; }
+    .panel.blue .total { text-align: left; }
+    .panel.blue .phases { grid-template-columns: 1fr 1.4fr; }
+    .panel.blue .phase:nth-child(1) { order: 2; }
+    .panel.blue .ph-head { flex-direction: row-reverse; }
+    .panel.blue .ph-label { text-align: right; }
+    .panel.blue .foot .small:nth-child(1) { order: 2; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .total.bump { animation: none; }
+    .meter b, .big { transition: none; }
+  }
+</style>
+
+<div class="bar-top">
+  <h1>ITF TUL<span>計分板</span></h1>
+  <div class="rule">準確度 6.0 ＋ 表現 4.0 ＝ 10.0</div>
+  <button id="reset" type="button">全部重置</button>
+</div>
+
+<main>
+  <section class="panel red" data-side="red" aria-label="紅方">
+    <div class="head">
+      <div class="who">
+        <div class="chip-row"><span class="chip">紅方 <i>RED</i></span><span class="tag" id="red-tag" hidden>零分</span></div>
+      </div>
+      <div class="total" id="red-total" aria-live="polite">10.0</div>
+    </div>
+    <div class="phases">
+      <div class="phase">
+        <div class="ph-head">
+          <div class="ph-label">① 準確度<small id="red-dn">已扣 0 次</small></div>
+          <div class="ph-read"><span id="red-p1">6.0</span><small>/6.0</small></div>
+        </div>
+        <div class="meter"><b id="red-m1"></b></div>
+        <button class="big deduct" type="button" data-act="ded" id="red-ded" aria-label="紅方 扣 0.2 分">−0.2</button>
+      </div>
+      <div class="phase">
+        <div class="ph-head">
+          <div class="ph-label">② 表現<small id="red-an">已加 0 次</small></div>
+          <div class="ph-read"><span id="red-p2">0.0</span><small>/4.0</small></div>
+        </div>
+        <div class="meter"><b id="red-m2"></b></div>
+        <button class="big add" type="button" data-act="add" id="red-add" aria-label="紅方 加 0.5 分">+0.5</button>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="small" type="button" data-act="undo" id="red-undo">復原上一步</button>
+      <button class="small zero" type="button" data-act="zero" id="red-zero">零分 0</button>
+    </div>
+  </section>
+
+  <section class="panel blue" data-side="blue" aria-label="藍方">
+    <div class="head">
+      <div class="who">
+        <div class="chip-row"><span class="chip">藍方 <i>BLUE</i></span><span class="tag" id="blue-tag" hidden>零分</span></div>
+      </div>
+      <div class="total" id="blue-total" aria-live="polite">10.0</div>
+    </div>
+    <div class="phases">
+      <div class="phase">
+        <div class="ph-head">
+          <div class="ph-label">① 準確度<small id="blue-dn">已扣 0 次</small></div>
+          <div class="ph-read"><span id="blue-p1">6.0</span><small>/6.0</small></div>
+        </div>
+        <div class="meter"><b id="blue-m1"></b></div>
+        <button class="big deduct" type="button" data-act="ded" id="blue-ded" aria-label="藍方 扣 0.2 分">−0.2</button>
+      </div>
+      <div class="phase">
+        <div class="ph-head">
+          <div class="ph-label">② 表現<small id="blue-an">已加 0 次</small></div>
+          <div class="ph-read"><span id="blue-p2">0.0</span><small>/4.0</small></div>
+        </div>
+        <div class="meter"><b id="blue-m2"></b></div>
+        <button class="big add" type="button" data-act="add" id="blue-add" aria-label="藍方 加 0.5 分">+0.5</button>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="small" type="button" data-act="undo" id="blue-undo">復原上一步</button>
+      <button class="small zero" type="button" data-act="zero" id="blue-zero">零分 0</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  // All scores are kept in tenths of a point to avoid floating-point drift.
+  var KEY = 'itf-tul-scoreboard-v1';
+  var MAX_D = 30;   // 6.0 / 0.2
+  var MAX_A = 8;    // 4.0 / 0.5
+  var fresh = function () { return { d: 0, a: 0, z: false, h: [] }; };
+  var S = { red: fresh(), blue: fresh() };
+
+  function sanitize(x) {
+    var s = fresh();
+    if (!x || typeof x !== 'object') return s;
+    s.d = Math.max(0, Math.min(MAX_D, x.d | 0));
+    s.a = Math.max(0, Math.min(MAX_A, x.a | 0));
+    s.z = !!x.z;
+    s.h = Array.isArray(x.h) ? x.h.filter(function (v) { return v === 'd' || v === 'a'; }).slice(-60) : [];
+    return s;
+  }
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved) { S.red = sanitize(saved.red); S.blue = sanitize(saved.blue); }
+  } catch (e) {}
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+  var fmt = function (n) { return (n / 10).toFixed(1); };
+  var $ = function (id) { return document.getElementById(id); };
+  var vib = function () { try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {} };
+
+  function render(side, bump) {
+    var s = S[side];
+    var p1 = 60 - 2 * s.d, p2 = 5 * s.a;
+    var total = s.z ? 0 : p1 + p2;
+    var t = $(side + '-total');
+    t.textContent = fmt(total);
+    if (bump) { t.classList.remove('bump'); void t.offsetWidth; t.classList.add('bump'); }
+    $(side + '-p1').textContent = fmt(p1);
+    $(side + '-p2').textContent = fmt(p2);
+    $(side + '-m1').style.width = (p1 / 60 * 100) + '%';
+    $(side + '-m2').style.width = (p2 / 40 * 100) + '%';
+    $(side + '-dn').textContent = '已扣 ' + s.d + ' 次';
+    $(side + '-an').textContent = '已加 ' + s.a + ' 次';
+    $(side + '-ded').disabled = s.z || s.d >= MAX_D;
+    $(side + '-add').disabled = s.z || s.a >= MAX_A;
+    $(side + '-undo').disabled = s.z || s.h.length === 0;
+    var z = $(side + '-zero');
+    z.textContent = s.z ? '取消零分' : '零分 0';
+    z.classList.toggle('on', s.z);
+    $(side + '-tag').hidden = !s.z;
+    document.querySelector('.panel[data-side="' + side + '"]').classList.toggle('zeroed', s.z);
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    var side = btn.closest('.panel').getAttribute('data-side');
+    var s = S[side], act = btn.getAttribute('data-act');
+    if (act === 'ded' && !s.z && s.d < MAX_D) { s.d++; s.h.push('d'); }
+    else if (act === 'add' && !s.z && s.a < MAX_A) { s.a++; s.h.push('a'); }
+    else if (act === 'undo' && !s.z && s.h.length) { var last = s.h.pop(); if (last === 'd') s.d--; else s.a--; }
+    else if (act === 'zero') { s.z = !s.z; }
+    else return;
+    vib();
+    persist();
+    render(side, true);
+  });
+
+  var resetBtn = $('reset'), resetTimer = null;
+  resetBtn.addEventListener('click', function () {
+    if (!resetBtn.classList.contains('confirm')) {
+      resetBtn.classList.add('confirm');
+      resetBtn.textContent = '再按一次確認';
+      resetTimer = setTimeout(function () {
+        resetBtn.classList.remove('confirm');
+        resetBtn.textContent = '全部重置';
+      }, 3000);
+      return;
+    }
+    clearTimeout(resetTimer);
+    resetBtn.classList.remove('confirm');
+    resetBtn.textContent = '全部重置';
+    S.red = fresh(); S.blue = fresh();
+    persist();
+    render('red', true); render('blue', true);
+  });
+
+  render('red'); render('blue');
+
+  // keep the screen on while scoring (optional, may be refused)
+  var lock = null;
+  function wake() {
+    try {
+      if (navigator.wakeLock && document.visibilityState === 'visible') {
+        navigator.wakeLock.request('screen').then(function (l) { lock = l; }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', wake);
+  wake();
+})();
+</script>
+
+</body></html>
