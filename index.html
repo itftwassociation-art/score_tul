@@ -1,420 +1,382 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Two-Level Scoreboard</title>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ITF TUL 計分板</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@500;700&display=swap">
 <style>
-  :root{
-    --bg:#101012;
-    --panel:#19191b;
-    --line: rgba(244,239,228,0.13);
-    --ink:#f4efe4;
-    --ink-dim: rgba(244,239,228,0.55);
-    --red:#b31631; --red-dim:#7e0f22;
-    --blue:#163f9e; --blue-dim:#0e2a6e;
-    --gold:#c9a24a;
-    --danger:#ff5a45;
+  /* Layout: two full-colour side panels (red / blue). Each panel = name + total, two phase controls (big deduct, add), undo + zero. */
+  :root {
+    --bg: #E8EBF0;
+    --fg: #141A24;
+    --muted: #586172;
+    --line: #C6CCD7;
+    --red: #C42E33;
+    --blue: #1D4DBB;
+    --ink: #FFFFFF;
+    --font-display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+    --font-body: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;}
-  body{
-    margin:0; background:var(--bg); color:var(--ink);
-    font-family:'Inter',system-ui,sans-serif;
-    height:100vh; height:100dvh; overflow:hidden;
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1117;
+      --fg: #E7EBF2;
+      --muted: #98A2B3;
+      --line: #262D3A;
+      --red: #B02429;
+      --blue: #1A429E;
+      color-scheme: dark;
+    }
   }
-  .app{ display:flex; flex-direction:column; height:100vh; height:100dvh; }
-
-  .topbar{
-    flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
-    padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line);
-  }
-  .brand{ display:flex; align-items:baseline; gap:8px; }
-  .brand .mark{ font-family:'Oswald',sans-serif; font-weight:600; font-size:15px; letter-spacing:0.04em; color:var(--gold); }
-  .brand .sub{ font-size:11px; color:var(--ink-dim); }
-  .reset-btn{
-    background:transparent; border:1px solid var(--line); color:var(--ink-dim);
-    font-size:12px; padding:7px 12px; border-radius:6px; cursor:pointer;
-  }
-  .reset-btn:hover{ color:var(--ink); border-color:var(--ink-dim); }
-  .topbar-actions{ display:flex; gap:8px; }
-
-  /* ---- rotate-to-landscape prompt (mobile portrait) ---- */
-  .rotate-overlay{
-    position:fixed; inset:0; z-index:60; background:var(--bg);
-    display:none; flex-direction:column; align-items:center; justify-content:center;
-    gap:16px; padding:28px; text-align:center;
-  }
-  .rotate-overlay.show{ display:flex; }
-  .rotate-icon{
-    width:56px; height:56px; border:3px solid var(--gold); border-radius:8px;
-    animation: rotateHint 1.6s ease-in-out infinite;
-  }
-  @keyframes rotateHint{
-    0%,20%{ transform:rotate(0deg); }
-    50%,70%{ transform:rotate(-90deg); }
-    100%{ transform:rotate(-90deg); }
-  }
-  .rotate-overlay h2{ font-family:'Oswald',sans-serif; font-size:18px; font-weight:500; margin:0; }
-  .rotate-overlay p{ font-family:'Inter'; font-size:12.5px; color:var(--ink-dim); margin:0; max-width:260px; }
-  .rotate-continue{
-    margin-top:6px; background:transparent; border:1px solid var(--line); color:var(--ink-dim);
-    font-size:12px; padding:8px 14px; border-radius:7px; cursor:pointer;
+  :root[data-theme="dark"] {
+    --bg: #0D1117;
+    --fg: #E7EBF2;
+    --muted: #98A2B3;
+    --line: #262D3A;
+    --red: #B02429;
+    --blue: #1A429E;
+    color-scheme: dark;
   }
 
-  .arena{ flex:1 1 auto; display:flex; min-height:0; }
-  .side{ flex:1 1 50%; display:flex; flex-direction:column; min-width:0; position:relative; overflow:hidden; }
-  .side.red{ background: linear-gradient(180deg, var(--red) 0%, var(--red-dim) 100%); }
-  .side.blue{ background: linear-gradient(180deg, var(--blue) 0%, var(--blue-dim) 100%); }
-  .divider{ width:1px; background:rgba(0,0,0,0.4); flex:0 0 auto; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    padding-block: 8px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+  button:focus-visible, input:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 
-  .side-head{
-    flex:0 0 auto; padding:10px 14px 0;
-    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  /* top bar */
+  .bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
   }
-  .name{
-    font-family:'Oswald',sans-serif; font-size:15px; font-weight:500; letter-spacing:0.02em;
-    background:transparent; border:none; color:var(--ink);
-    border-bottom:1px solid transparent; padding:2px 0; width:100%; min-width:0;
+  .bar-top h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    line-height: 1;
   }
-  .name:focus{ outline:none; border-bottom-color:rgba(244,239,228,0.5); }
-  .dq-badge{
-    font-family:'Inter'; font-size:11px; font-weight:700; letter-spacing:0.04em;
-    color:var(--danger); background:rgba(0,0,0,0.28); border:1px solid var(--danger);
-    padding:3px 8px; border-radius:5px; display:none; white-space:nowrap;
+  .bar-top h1 span { font-family: var(--font-body); font-size: 15px; letter-spacing: .08em; margin-left: 8px; color: var(--muted); font-weight: 500; }
+  .rule { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #reset {
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    background: transparent;
+    border: 2px solid var(--line);
+    color: var(--fg);
+    font-weight: 700;
+    font-size: 14px;
   }
-  .dq-badge.show{ display:inline-block; }
+  #reset.confirm { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 
-  /* mirrored body: outer button column + inner readout column */
-  .side-body{ flex:1 1 auto; display:flex; flex-direction:row; min-height:0; }
-  .side.blue .side-body{ flex-direction:row-reverse; }
-
-  .btn-col{
-    flex:0 0 auto; width:78px; display:flex; flex-direction:column; gap:8px;
-    padding:8px; justify-content:center; align-items:stretch;
+  /* board */
+  main {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, minmax(340px, 1fr));
   }
-  .lbtn{
-    border-radius:10px; border:1px solid rgba(244,239,228,0.3);
-    background: rgba(0,0,0,0.20); color:var(--ink);
-    font-family:'Oswald',sans-serif; font-size:15px; font-weight:600;
-    padding:14px 2px; cursor:pointer; text-align:center;
-  }
-  .lbtn small{ display:block; font-family:'Inter'; font-size:9px; font-weight:500; letter-spacing:0.03em; color: rgba(244,239,228,0.65); margin-top:2px; }
-  .lbtn:active{ background: rgba(0,0,0,0.36); transform:scale(0.96); }
-  .lbtn:disabled{ opacity:0.35; cursor:default; }
-  .lbtn.dq{
-    background: rgba(255,90,69,0.16); border-color: var(--danger); color: var(--danger);
-    font-family:'Inter'; font-size:12px; font-weight:700; letter-spacing:0.03em; padding:12px 2px;
-  }
-  .lbtn.dq:active{ background: rgba(255,90,69,0.32); }
-  .undo-mini{
-    background:transparent; border:1px dashed rgba(244,239,228,0.28); color: rgba(244,239,228,0.72);
-    border-radius:8px; padding:8px 2px; font-family:'Inter'; font-size:10px; cursor:pointer;
-  }
-  .undo-mini:disabled{ opacity:0.3; cursor:default; }
-
-  .main-col{ flex:1 1 auto; display:flex; flex-direction:column; min-width:0; min-height:0; justify-content:center; gap:8px; padding:4px 10px; }
-
-  .total-wrap{ display:flex; flex-direction:column; align-items:center; }
-  .total-label{ font-family:'Inter'; font-size:11px; letter-spacing:0.05em; color:rgba(244,239,228,0.7); margin-bottom:2px; }
-  .total{
-    font-family:'Oswald',sans-serif; font-weight:700; font-size:min(15vw, 76px);
-    line-height:1; user-select:none;
-  }
-  .total.zeroed{ color: var(--danger); }
-
-  .readout-row{ display:flex; gap:8px; }
-  .readout{
-    flex:1; background: rgba(0,0,0,0.20); border:1px solid rgba(244,239,228,0.18);
-    border-radius:10px; padding:8px 10px; text-align:center;
-  }
-  .readout .rtitle{ font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:0.03em; color: rgba(244,239,228,0.75); }
-  .readout .rscore{ font-family:'Oswald',sans-serif; font-size:22px; font-weight:600; font-variant-numeric: tabular-nums; }
-  .readout .rmax{ font-family:'Inter'; font-size:10px; color: rgba(244,239,228,0.5); }
-
-  .level3-note{
-    text-align:center; font-family:'Inter'; font-size:10.5px; color: rgba(244,239,228,0.6);
+  @media (min-aspect-ratio: 5/4) {
+    main { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(300px, 1fr); }
   }
 
-  .bottombar{
-    flex:0 0 auto; display:flex; align-items:center; justify-content:center;
-    padding:8px 12px; background:var(--panel); border-top:1px solid var(--line);
-    font-family:'Inter'; font-size:11px; color:var(--ink-dim); text-align:center;
+  .panel {
+    --side: var(--red);
+    background: var(--side);
+    color: var(--ink);
+    border-radius: 14px;
+    padding: 12px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    container-type: size;
+    min-width: 0;
+    position: relative;
   }
+  .panel.blue { --side: var(--blue); }
 
-  @media (max-width: 620px){
-    .total{ font-size:min(13vw, 54px); }
-    .readout .rscore{ font-size:18px; }
-    .btn-col{ width:62px; }
-    .lbtn{ font-size:12.5px; padding:11px 2px; }
-    .name{ font-size:13px; }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .who { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .chip-row { display: flex; align-items: center; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    background: rgba(0,0,0,.28);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-weight: 700; font-size: 20px;
   }
+  .chip i { font-style: normal; font-family: var(--font-display); letter-spacing: .12em; font-size: 13px; opacity: .85; }
+  .tag { background: #fff; color: #111; font-weight: 700; font-size: 13px; padding: 3px 8px; border-radius: 6px; }
 
-  /* ---- phone in landscape / fullscreen: compress vertical chrome ---- */
-  @media (orientation: landscape) and (max-height: 480px){
-    .topbar{ padding:5px 12px; }
-    .brand .mark{ font-size:12px; }
-    .brand .sub{ display:none; }
-    .side-head{ padding:4px 12px 0; }
-    .name{ font-size:13px; }
-    .total{ font-size:min(8vw, 60px); }
-    .total-label{ margin-bottom:0; }
-    .btn-col{ width:60px; gap:5px; padding:4px 6px; }
-    .lbtn{ padding:7px 2px; font-size:12px; }
-    .lbtn.dq{ padding:6px 2px; }
-    .undo-mini{ padding:4px 2px; }
-    .readout{ padding:5px 8px; }
-    .readout .rscore{ font-size:16px; }
-    .level3-note{ font-size:9px; }
-    .bottombar{ padding:4px 12px; font-size:9.5px; }
+  .total {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18vmin;
+    font-size: min(22cqh, 30cqw);
+    line-height: .86;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    letter-spacing: .01em;
+  }
+  .total.bump { animation: bump .22s ease-out; }
+  @keyframes bump { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+  .phases { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; min-height: 0; }
+  .phase { display: flex; flex-direction: column; gap: 6px; min-height: 0; min-width: 0; }
+  .ph-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; }
+  .ph-label { font-weight: 700; font-size: 14px; line-height: 1.15; }
+  .ph-label small { display: block; font-weight: 500; font-size: 12px; opacity: .85; }
+  .ph-read { font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ph-read small { font-size: 16px; opacity: .8; font-weight: 600; }
+  .meter { height: 6px; border-radius: 3px; background: rgba(0,0,0,.3); overflow: hidden; flex: none; }
+  .meter b { display: block; height: 100%; background: #fff; width: 100%; transition: width .15s; }
+
+  .big {
+    flex: 1;
+    min-height: 56px;
+    border-radius: 12px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: transform .06s;
+  }
+  .big:active:not(:disabled) { transform: scale(.97); }
+  .big:disabled { opacity: .35; cursor: not-allowed; }
+  .big.deduct { background: #fff; color: var(--side); font-size: 16vmin; font-size: clamp(44px, 24cqh, 110px); }
+  .big.add { background: rgba(0,0,0,.32); color: #fff; border: 2px solid rgba(255,255,255,.7); font-size: 11vmin; font-size: clamp(34px, 15cqh, 72px); }
+
+  .foot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .small {
+    min-height: 46px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.3);
+    color: #fff;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .small:disabled { opacity: .35; cursor: not-allowed; }
+  .small.zero.on { background: #fff; color: var(--side); }
+
+  .panel.zeroed .phases { opacity: .45; }
+
+  @media (max-height: 460px) {
+    body { gap: 6px; padding-block: 4px; }
+    .bar-top h1 { font-size: 20px; }
+    .rule { display: none; }
+    #reset { min-height: 34px; }
+    .panel { padding: 8px; gap: 6px; }
+    .small { min-height: 38px; }
+  }
+  /* Side-by-side: blue panel is the left-right mirror of the red panel */
+  @media (min-aspect-ratio: 5/4) {
+    .panel.blue .head { flex-direction: row-reverse; }
+    .panel.blue .who { align-items: flex-end; }
+    .panel.blue .total { text-align: left; }
+    .panel.blue .phases { grid-template-columns: 1fr 1.4fr; }
+    .panel.blue .phase:nth-child(1) { order: 2; }
+    .panel.blue .ph-head { flex-direction: row-reverse; }
+    .panel.blue .ph-label { text-align: right; }
+    .panel.blue .foot .small:nth-child(1) { order: 2; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .total.bump { animation: none; }
+    .meter b, .big { transition: none; }
   }
 </style>
-</head>
-<body>
-<div class="app">
 
-  <div class="topbar">
-    <div class="brand">
-      <span class="mark">TKD JUDGING</span>
-      <span class="sub">two-level scoreboard</span>
-    </div>
-    <div class="topbar-actions">
-      <button class="reset-btn" id="fullscreenBtn">Full screen</button>
-      <button class="reset-btn" id="resetAllBtn">Reset all</button>
-    </div>
-  </div>
-
-  <div class="rotate-overlay" id="rotateOverlay">
-    <div class="rotate-icon"></div>
-    <h2>Rotate your phone</h2>
-    <p>This scoreboard is built for landscape — turn your phone sideways for the full-screen layout.</p>
-    <button class="rotate-continue" id="rotateContinueBtn">Continue in portrait</button>
-  </div>
-
-  <div class="arena">
-    <!-- RED -->
-    <div class="side red" data-side="red">
-      <div class="side-head">
-        <input class="name" id="nameRed" value="Red" maxlength="16">
-        <span class="dq-badge" id="dqBadgeRed">DQ · 0</span>
-      </div>
-      <div class="side-body">
-        <div class="btn-col">
-          <button class="lbtn" data-side="red" data-action="l1minus">−0.2<small>LEVEL 1</small></button>
-          <button class="lbtn" data-side="red" data-action="l2plus">+0.5<small>LEVEL 2</small></button>
-          <button class="lbtn dq" data-side="red" data-action="dq">DQ<small style="color:var(--danger)">LEVEL 3</small></button>
-          <button class="undo-mini" data-side="red" id="undoRed">Undo last</button>
-        </div>
-        <div class="main-col">
-          <div class="total-wrap">
-            <div class="total-label">TOTAL</div>
-            <div class="total" id="totalRed">6.0</div>
-          </div>
-          <div class="readout-row">
-            <div class="readout">
-              <div class="rtitle">LEVEL 1</div>
-              <div class="rscore" id="l1Red">6.0</div>
-              <div class="rmax">/ 6.0</div>
-            </div>
-            <div class="readout">
-              <div class="rtitle">LEVEL 2</div>
-              <div class="rscore" id="l2Red">0.0</div>
-              <div class="rmax">/ 4.0</div>
-            </div>
-          </div>
-          <div class="level3-note">Level 3 — DQ zeroes the total score</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- BLUE -->
-    <div class="side blue" data-side="blue">
-      <div class="side-head">
-        <input class="name" id="nameBlue" value="Blue" maxlength="16">
-        <span class="dq-badge" id="dqBadgeBlue">DQ · 0</span>
-      </div>
-      <div class="side-body">
-        <div class="btn-col">
-          <button class="lbtn" data-side="blue" data-action="l1minus">−0.2<small>LEVEL 1</small></button>
-          <button class="lbtn" data-side="blue" data-action="l2plus">+0.5<small>LEVEL 2</small></button>
-          <button class="lbtn dq" data-side="blue" data-action="dq">DQ<small style="color:var(--danger)">LEVEL 3</small></button>
-          <button class="undo-mini" data-side="blue" id="undoBlue">Undo last</button>
-        </div>
-        <div class="main-col">
-          <div class="total-wrap">
-            <div class="total-label">TOTAL</div>
-            <div class="total" id="totalBlue">6.0</div>
-          </div>
-          <div class="readout-row">
-            <div class="readout">
-              <div class="rtitle">LEVEL 1</div>
-              <div class="rscore" id="l1Blue">6.0</div>
-              <div class="rmax">/ 6.0</div>
-            </div>
-            <div class="readout">
-              <div class="rtitle">LEVEL 2</div>
-              <div class="rscore" id="l2Blue">0.0</div>
-              <div class="rmax">/ 4.0</div>
-            </div>
-          </div>
-          <div class="level3-note">Level 3 — DQ zeroes the total score</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="bottombar">Level 1 starts at 6.0 · Level 2 starts at 0.0 · Level 3 DQ zeroes the total</div>
+<div class="bar-top">
+  <h1>ITF TUL<span>計分板</span></h1>
+  <div class="rule">準確度 6.0 ＋ 表現 4.0 ＝ 10.0</div>
+  <button id="reset" type="button">全部重置</button>
 </div>
 
+<main>
+  <section class="panel red" data-side="red" aria-label="紅方">
+    <div class="head">
+      <div class="who">
+        <div class="chip-row"><span class="chip">紅方 <i>RED</i></span><span class="tag" id="red-tag" hidden>零分</span></div>
+      </div>
+      <div class="total" id="red-total" aria-live="polite">10.0</div>
+    </div>
+    <div class="phases">
+      <div class="phase">
+        <div class="ph-head">
+          <div class="ph-label">① 準確度<small id="red-dn">已扣 0 次</small></div>
+          <div class="ph-read"><span id="red-p1">6.0</span><small>/6.0</small></div>
+        </div>
+        <div class="meter"><b id="red-m1"></b></div>
+        <button class="big deduct" type="button" data-act="ded" id="red-ded" aria-label="紅方 扣 0.2 分">−0.2</button>
+      </div>
+      <div class="phase">
+        <div class="ph-head">
+          <div class="ph-label">② 表現<small id="red-an">已加 0 次</small></div>
+          <div class="ph-read"><span id="red-p2">0.0</span><small>/4.0</small></div>
+        </div>
+        <div class="meter"><b id="red-m2"></b></div>
+        <button class="big add" type="button" data-act="add" id="red-add" aria-label="紅方 加 0.5 分">+0.5</button>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="small" type="button" data-act="undo" id="red-undo">復原上一步</button>
+      <button class="small zero" type="button" data-act="zero" id="red-zero">零分 0</button>
+    </div>
+  </section>
+
+  <section class="panel blue" data-side="blue" aria-label="藍方">
+    <div class="head">
+      <div class="who">
+        <div class="chip-row"><span class="chip">藍方 <i>BLUE</i></span><span class="tag" id="blue-tag" hidden>零分</span></div>
+      </div>
+      <div class="total" id="blue-total" aria-live="polite">10.0</div>
+    </div>
+    <div class="phases">
+      <div class="phase">
+        <div class="ph-head">
+          <div class="ph-label">① 準確度<small id="blue-dn">已扣 0 次</small></div>
+          <div class="ph-read"><span id="blue-p1">6.0</span><small>/6.0</small></div>
+        </div>
+        <div class="meter"><b id="blue-m1"></b></div>
+        <button class="big deduct" type="button" data-act="ded" id="blue-ded" aria-label="藍方 扣 0.2 分">−0.2</button>
+      </div>
+      <div class="phase">
+        <div class="ph-head">
+          <div class="ph-label">② 表現<small id="blue-an">已加 0 次</small></div>
+          <div class="ph-read"><span id="blue-p2">0.0</span><small>/4.0</small></div>
+        </div>
+        <div class="meter"><b id="blue-m2"></b></div>
+        <button class="big add" type="button" data-act="add" id="blue-add" aria-label="藍方 加 0.5 分">+0.5</button>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="small" type="button" data-act="undo" id="blue-undo">復原上一步</button>
+      <button class="small zero" type="button" data-act="zero" id="blue-zero">零分 0</button>
+    </div>
+  </section>
+</main>
+
 <script>
-(function(){
-  const L1_MAX = 6.0, L1_STEP = 0.2;
-  const L2_MAX = 4.0, L2_STEP = 0.5;
+(function () {
+  // All scores are kept in tenths of a point to avoid floating-point drift.
+  var KEY = 'itf-tul-scoreboard-v1';
+  var MAX_D = 30;   // 6.0 / 0.2
+  var MAX_A = 8;    // 4.0 / 0.5
+  var fresh = function () { return { d: 0, a: 0, z: false, h: [] }; };
+  var S = { red: fresh(), blue: fresh() };
 
-  const sides = ['red','blue'];
-  const state = {
-    red:  { l1: L1_MAX, l2: 0, dq:false, history:[] },
-    blue: { l1: L1_MAX, l2: 0, dq:false, history:[] }
-  };
+  function sanitize(x) {
+    var s = fresh();
+    if (!x || typeof x !== 'object') return s;
+    s.d = Math.max(0, Math.min(MAX_D, x.d | 0));
+    s.a = Math.max(0, Math.min(MAX_A, x.a | 0));
+    s.z = !!x.z;
+    s.h = Array.isArray(x.h) ? x.h.filter(function (v) { return v === 'd' || v === 'a'; }).slice(-60) : [];
+    return s;
+  }
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved) { S.red = sanitize(saved.red); S.blue = sanitize(saved.blue); }
+  } catch (e) {}
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 
-  const round1 = n => Math.round(n*10)/10;
-  const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
-  const el = id => document.getElementById(id);
-  const ids = {};
-  sides.forEach(side => {
-    ids[side] = {
-      total: el('total'+cap(side)),
-      l1: el('l1'+cap(side)),
-      l2: el('l2'+cap(side)),
-      dqBadge: el('dqBadge'+cap(side)),
-      undo: el('undo'+cap(side)),
-      btns: document.querySelectorAll('.lbtn[data-side="'+side+'"]')
-    };
+  var fmt = function (n) { return (n / 10).toFixed(1); };
+  var $ = function (id) { return document.getElementById(id); };
+  var vib = function () { try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {} };
+
+  function render(side, bump) {
+    var s = S[side];
+    var p1 = 60 - 2 * s.d, p2 = 5 * s.a;
+    var total = s.z ? 0 : p1 + p2;
+    var t = $(side + '-total');
+    t.textContent = fmt(total);
+    if (bump) { t.classList.remove('bump'); void t.offsetWidth; t.classList.add('bump'); }
+    $(side + '-p1').textContent = fmt(p1);
+    $(side + '-p2').textContent = fmt(p2);
+    $(side + '-m1').style.width = (p1 / 60 * 100) + '%';
+    $(side + '-m2').style.width = (p2 / 40 * 100) + '%';
+    $(side + '-dn').textContent = '已扣 ' + s.d + ' 次';
+    $(side + '-an').textContent = '已加 ' + s.a + ' 次';
+    $(side + '-ded').disabled = s.z || s.d >= MAX_D;
+    $(side + '-add').disabled = s.z || s.a >= MAX_A;
+    $(side + '-undo').disabled = s.z || s.h.length === 0;
+    var z = $(side + '-zero');
+    z.textContent = s.z ? '取消零分' : '零分 0';
+    z.classList.toggle('on', s.z);
+    $(side + '-tag').hidden = !s.z;
+    document.querySelector('.panel[data-side="' + side + '"]').classList.toggle('zeroed', s.z);
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    var side = btn.closest('.panel').getAttribute('data-side');
+    var s = S[side], act = btn.getAttribute('data-act');
+    if (act === 'ded' && !s.z && s.d < MAX_D) { s.d++; s.h.push('d'); }
+    else if (act === 'add' && !s.z && s.a < MAX_A) { s.a++; s.h.push('a'); }
+    else if (act === 'undo' && !s.z && s.h.length) { var last = s.h.pop(); if (last === 'd') s.d--; else s.a--; }
+    else if (act === 'zero') { s.z = !s.z; }
+    else return;
+    vib();
+    persist();
+    render(side, true);
   });
 
-  function render(side){
-    const s = state[side];
-    const r = ids[side];
-    r.l1.textContent = round1(s.l1).toFixed(1);
-    r.l2.textContent = round1(s.l2).toFixed(1);
-    const totalVal = s.dq ? 0 : round1(s.l1 + s.l2);
-    r.total.textContent = totalVal.toFixed(1);
-    r.total.classList.toggle('zeroed', s.dq);
-    r.dqBadge.classList.toggle('show', s.dq);
-    r.undo.disabled = s.history.length === 0;
-    r.btns.forEach(b => { if(b.dataset.action !== 'dq') b.disabled = s.dq; });
-  }
-
-  function snapshot(side){
-    const s = state[side];
-    return { l1: s.l1, l2: s.l2, dq: s.dq };
-  }
-
-  function l1Minus(side){
-    const s = state[side];
-    if(s.dq) return;
-    s.history.push(snapshot(side));
-    s.l1 = round1(Math.max(0, s.l1 - L1_STEP));
-    render(side);
-  }
-
-  function l2Plus(side){
-    const s = state[side];
-    if(s.dq) return;
-    s.history.push(snapshot(side));
-    s.l2 = round1(Math.min(L2_MAX, s.l2 + L2_STEP));
-    render(side);
-  }
-
-  function dq(side){
-    const s = state[side];
-    if(s.dq) return;
-    s.history.push(snapshot(side));
-    s.dq = true;
-    render(side);
-  }
-
-  function undo(side){
-    const s = state[side];
-    if(s.history.length === 0) return;
-    const prev = s.history.pop();
-    s.l1 = prev.l1; s.l2 = prev.l2; s.dq = prev.dq;
-    render(side);
-  }
-
-  sides.forEach(side => {
-    ids[side].btns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const action = btn.dataset.action;
-        if(action === 'l1minus') l1Minus(side);
-        if(action === 'l2plus') l2Plus(side);
-        if(action === 'dq') dq(side);
-      });
-    });
-    ids[side].undo.addEventListener('click', () => undo(side));
-  });
-
-  // ---- fullscreen + landscape prompt ----
-  const fsBtn = el('fullscreenBtn');
-  const rotateOverlay = el('rotateOverlay');
-  let dismissedPortraitPrompt = false;
-
-  function enterFullscreen(){
-    const d = document.documentElement;
-    const req = d.requestFullscreen || d.webkitRequestFullscreen || d.msRequestFullscreen;
-    if(req){ req.call(d).catch(() => {}); }
-    if(screen.orientation && screen.orientation.lock){
-      screen.orientation.lock('landscape').catch(() => {});
+  var resetBtn = $('reset'), resetTimer = null;
+  resetBtn.addEventListener('click', function () {
+    if (!resetBtn.classList.contains('confirm')) {
+      resetBtn.classList.add('confirm');
+      resetBtn.textContent = '再按一次確認';
+      resetTimer = setTimeout(function () {
+        resetBtn.classList.remove('confirm');
+        resetBtn.textContent = '全部重置';
+      }, 3000);
+      return;
     }
-  }
-  function exitFullscreen(){
-    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
-    if(exit){ exit.call(document).catch(() => {}); }
-  }
-  function isFullscreen(){
-    return !!(document.fullscreenElement || document.webkitFullscreenElement);
-  }
-  function updateFsBtn(){
-    fsBtn.textContent = isFullscreen() ? 'Exit full screen' : 'Full screen';
-  }
-  fsBtn.addEventListener('click', () => {
-    isFullscreen() ? exitFullscreen() : enterFullscreen();
-  });
-  document.addEventListener('fullscreenchange', updateFsBtn);
-  document.addEventListener('webkitfullscreenchange', updateFsBtn);
-
-  const portraitQuery = window.matchMedia('(orientation: portrait)');
-  function checkOrientation(){
-    const isSmallScreen = Math.min(window.innerWidth, window.innerHeight) < 700;
-    if(portraitQuery.matches && isSmallScreen && !dismissedPortraitPrompt){
-      rotateOverlay.classList.add('show');
-    } else {
-      rotateOverlay.classList.remove('show');
-    }
-    if(!portraitQuery.matches){ dismissedPortraitPrompt = false; }
-  }
-  portraitQuery.addEventListener ? portraitQuery.addEventListener('change', checkOrientation) : portraitQuery.addListener(checkOrientation);
-  window.addEventListener('resize', checkOrientation);
-  el('rotateContinueBtn').addEventListener('click', () => {
-    dismissedPortraitPrompt = true;
-    rotateOverlay.classList.remove('show');
-  });
-  checkOrientation();
-
-  el('resetAllBtn').addEventListener('click', () => {
-    if(!confirm('Reset both scores? This clears Level 1, Level 2 and DQ status.')) return;
-    sides.forEach(side => {
-      state[side] = { l1: L1_MAX, l2: 0, dq:false, history:[] };
-      render(side);
-    });
+    clearTimeout(resetTimer);
+    resetBtn.classList.remove('confirm');
+    resetBtn.textContent = '全部重置';
+    S.red = fresh(); S.blue = fresh();
+    persist();
+    render('red', true); render('blue', true);
   });
 
-  sides.forEach(render);
+  render('red'); render('blue');
+
+  // keep the screen on while scoring (optional, may be refused)
+  var lock = null;
+  function wake() {
+    try {
+      if (navigator.wakeLock && document.visibilityState === 'visible') {
+        navigator.wakeLock.request('screen').then(function (l) { lock = l; }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', wake);
+  wake();
 })();
 </script>
-</body>
-</html>
+
+</body></html>
