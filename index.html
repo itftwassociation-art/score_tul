@@ -5,7 +5,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@500;700&display=swap">
 <style>
-  /* Layout: two full-colour side panels (red / blue). Each panel = name + total, two phase controls (big deduct, add), undo + zero. */
+  /* Layout: control bar (stage + next) on top; two full-colour side panels (red / blue), blue mirrors red when side by side.
+     Each panel = chip + per-pattern scores + current score, two phase controls (big deduct, add), undo + zero. */
   :root {
     --bg: #E8EBF0;
     --fg: #141A24;
@@ -56,14 +57,15 @@
     -webkit-user-select: none;
   }
   button { font: inherit; color: inherit; cursor: pointer; border: 0; }
-  button:focus-visible, input:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  .btn:focus-visible { outline-color: var(--fg); }
 
   /* top bar */
   .bar-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
   }
   .bar-top h1 {
@@ -74,12 +76,17 @@
     letter-spacing: .06em;
     text-transform: uppercase;
     line-height: 1;
+    white-space: nowrap;
   }
   .bar-top h1 span { font-family: var(--font-body); font-size: 15px; letter-spacing: .08em; margin-left: 8px; color: var(--muted); font-weight: 500; }
-  .rule { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  #reset {
+  .ctrl { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; flex: 1 1 auto; }
+  .stage { display: flex; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .stage span { padding: 6px 12px; font-size: 14px; font-weight: 700; color: var(--muted); }
+  .stage span.done { color: var(--fg); }
+  .stage span.on { background: var(--fg); color: var(--bg); }
+  .btn {
     min-height: 40px;
-    padding: 0 16px;
+    padding: 0 14px;
     border-radius: 8px;
     background: transparent;
     border: 2px solid var(--line);
@@ -87,7 +94,20 @@
     font-weight: 700;
     font-size: 14px;
   }
+  .btn:disabled { opacity: .35; cursor: not-allowed; }
+  #next { min-height: 44px; padding: 0 18px; font-size: 16px; background: var(--fg); color: var(--bg); border-color: var(--fg); }
   #reset.confirm { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .result {
+    font-weight: 700;
+    font-size: 17px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .result.red { background: var(--red); }
+  .result.blue { background: var(--blue); }
+  .result.tie { background: var(--fg); color: var(--bg); }
 
   /* board */
   main {
@@ -97,10 +117,10 @@
     display: grid;
     gap: 10px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(2, minmax(340px, 1fr));
+    grid-template-rows: repeat(2, minmax(360px, 1fr));
   }
   @media (min-aspect-ratio: 5/4) {
-    main { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(300px, 1fr); }
+    main { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(320px, 1fr); }
   }
 
   .panel {
@@ -117,6 +137,7 @@
     position: relative;
   }
   .panel.blue { --side: var(--blue); }
+  .panel.win { box-shadow: inset 0 0 0 4px #fff; }
 
   .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .who { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -130,12 +151,22 @@
   }
   .chip i { font-style: normal; font-family: var(--font-display); letter-spacing: .12em; font-size: 13px; opacity: .85; }
   .tag { background: #fff; color: #111; font-weight: 700; font-size: 13px; padding: 3px 8px; border-radius: 6px; }
+  .tag.win { font-size: 15px; padding: 3px 10px; }
 
+  .sum { display: flex; gap: 6px; }
+  .cell { background: rgba(0,0,0,.22); border-radius: 6px; padding: 3px 8px; min-width: 0; text-align: center; }
+  .cell small { display: block; font-size: 11px; font-weight: 500; opacity: .9; white-space: nowrap; }
+  .cell b { display: block; font-family: var(--font-display); font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .cell.cur { outline: 2px solid rgba(255,255,255,.85); }
+  .cell.sumc { background: #fff; color: var(--side); }
+
+  .tot-wrap { text-align: right; }
+  .tot-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; opacity: .92; margin-bottom: 2px; }
   .total {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 18vmin;
-    font-size: min(22cqh, 30cqw);
+    font-size: 17vmin;
+    font-size: min(20cqh, 28cqw);
     line-height: .86;
     font-variant-numeric: tabular-nums;
     text-align: right;
@@ -166,8 +197,8 @@
   }
   .big:active:not(:disabled) { transform: scale(.97); }
   .big:disabled { opacity: .35; cursor: not-allowed; }
-  .big.deduct { background: #fff; color: var(--side); font-size: 16vmin; font-size: clamp(44px, 24cqh, 110px); }
-  .big.add { background: rgba(0,0,0,.32); color: #fff; border: 2px solid rgba(255,255,255,.7); font-size: 11vmin; font-size: clamp(34px, 15cqh, 72px); }
+  .big.deduct { background: #fff; color: var(--side); font-size: 16vmin; font-size: clamp(44px, 22cqh, 110px); }
+  .big.add { background: rgba(0,0,0,.32); color: #fff; border: 2px solid rgba(255,255,255,.7); font-size: 11vmin; font-size: clamp(34px, 14cqh, 72px); }
 
   .foot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .small {
@@ -182,19 +213,25 @@
   .small.zero.on { background: #fff; color: var(--side); }
 
   .panel.zeroed .phases { opacity: .45; }
+  .panel.locked .phases, .panel.locked .foot { opacity: .5; }
 
   @media (max-height: 460px) {
     body { gap: 6px; padding-block: 4px; }
     .bar-top h1 { font-size: 20px; }
-    .rule { display: none; }
-    #reset { min-height: 34px; }
+    .btn { min-height: 34px; }
+    #next { min-height: 36px; }
+    .stage span { padding: 4px 10px; }
     .panel { padding: 8px; gap: 6px; }
     .small { min-height: 38px; }
+    .cell b { font-size: 18px; }
   }
   /* Side-by-side: blue panel is the left-right mirror of the red panel */
   @media (min-aspect-ratio: 5/4) {
     .panel.blue .head { flex-direction: row-reverse; }
     .panel.blue .who { align-items: flex-end; }
+    .panel.blue .chip-row { flex-direction: row-reverse; }
+    .panel.blue .sum { flex-direction: row-reverse; }
+    .panel.blue .tot-wrap { text-align: left; }
     .panel.blue .total { text-align: left; }
     .panel.blue .phases { grid-template-columns: 1fr 1.4fr; }
     .panel.blue .phase:nth-child(1) { order: 2; }
@@ -210,17 +247,36 @@
 
 <div class="bar-top">
   <h1>ITF TUL<span>計分板</span></h1>
-  <div class="rule">準確度 6.0 ＋ 表現 4.0 ＝ 10.0</div>
-  <button id="reset" type="button">全部重置</button>
+  <div class="ctrl">
+    <button class="btn" id="back" type="button" hidden>← 上一步</button>
+    <div class="stage" aria-label="進行階段">
+      <span id="st1">第1套</span><span id="st2">第2套</span><span id="st3">結果</span>
+    </div>
+    <button class="btn" id="next" type="button">完成第1套 →</button>
+    <div class="result" id="result" hidden aria-live="polite"></div>
+  </div>
+  <button class="btn" id="reset" type="button">新一回合</button>
 </div>
 
 <main>
   <section class="panel red" data-side="red" aria-label="紅方">
     <div class="head">
       <div class="who">
-        <div class="chip-row"><span class="chip">紅方 <i>RED</i></span><span class="tag" id="red-tag" hidden>零分</span></div>
+        <div class="chip-row">
+          <span class="chip">紅方 <i>RED</i></span>
+          <span class="tag" id="red-tag" hidden>零分</span>
+          <span class="tag win" id="red-win" hidden>勝</span>
+        </div>
+        <div class="sum">
+          <div class="cell" id="red-c1"><small>第1套</small><b id="red-s1">—</b></div>
+          <div class="cell" id="red-c2"><small>第2套</small><b id="red-s2">—</b></div>
+          <div class="cell sumc"><small>合計</small><b id="red-sum">0.0</b></div>
+        </div>
       </div>
-      <div class="total" id="red-total" aria-live="polite">10.0</div>
+      <div class="tot-wrap">
+        <div class="tot-label" id="red-tl">第1套</div>
+        <div class="total" id="red-total" aria-live="polite">10.0</div>
+      </div>
     </div>
     <div class="phases">
       <div class="phase">
@@ -249,9 +305,21 @@
   <section class="panel blue" data-side="blue" aria-label="藍方">
     <div class="head">
       <div class="who">
-        <div class="chip-row"><span class="chip">藍方 <i>BLUE</i></span><span class="tag" id="blue-tag" hidden>零分</span></div>
+        <div class="chip-row">
+          <span class="chip">藍方 <i>BLUE</i></span>
+          <span class="tag" id="blue-tag" hidden>零分</span>
+          <span class="tag win" id="blue-win" hidden>勝</span>
+        </div>
+        <div class="sum">
+          <div class="cell" id="blue-c1"><small>第1套</small><b id="blue-s1">—</b></div>
+          <div class="cell" id="blue-c2"><small>第2套</small><b id="blue-s2">—</b></div>
+          <div class="cell sumc"><small>合計</small><b id="blue-sum">0.0</b></div>
+        </div>
       </div>
-      <div class="total" id="blue-total" aria-live="polite">10.0</div>
+      <div class="tot-wrap">
+        <div class="tot-label" id="blue-tl">第1套</div>
+        <div class="total" id="blue-total" aria-live="polite">10.0</div>
+      </div>
     </div>
     <div class="phases">
       <div class="phase">
@@ -280,15 +348,17 @@
 
 <script>
 (function () {
+  // One round = two patterns (stage 1, stage 2). Stage 3 = result (scores locked).
   // All scores are kept in tenths of a point to avoid floating-point drift.
-  var KEY = 'itf-tul-scoreboard-v1';
+  var KEY = 'itf-tul-scoreboard-v2';
   var MAX_D = 30;   // 6.0 / 0.2
   var MAX_A = 8;    // 4.0 / 0.5
-  var fresh = function () { return { d: 0, a: 0, z: false, h: [] }; };
-  var S = { red: fresh(), blue: fresh() };
+  var entry = function () { return { d: 0, a: 0, z: false, h: [] }; };
+  var fresh = function () { return { stage: 1, red: { e: [entry(), entry()] }, blue: { e: [entry(), entry()] } }; };
+  var S = fresh();
 
-  function sanitize(x) {
-    var s = fresh();
+  function sanEntry(x) {
+    var s = entry();
     if (!x || typeof x !== 'object') return s;
     s.d = Math.max(0, Math.min(MAX_D, x.d | 0));
     s.a = Math.max(0, Math.min(MAX_A, x.a | 0));
@@ -296,52 +366,121 @@
     s.h = Array.isArray(x.h) ? x.h.filter(function (v) { return v === 'd' || v === 'a'; }).slice(-60) : [];
     return s;
   }
+  function sanSide(x) {
+    var e = (x && Array.isArray(x.e)) ? x.e : [];
+    return { e: [sanEntry(e[0]), sanEntry(e[1])] };
+  }
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (saved) { S.red = sanitize(saved.red); S.blue = sanitize(saved.blue); }
+    if (saved) {
+      S.stage = Math.max(1, Math.min(3, saved.stage | 0));
+      S.red = sanSide(saved.red);
+      S.blue = sanSide(saved.blue);
+    }
   } catch (e) {}
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 
   var fmt = function (n) { return (n / 10).toFixed(1); };
   var $ = function (id) { return document.getElementById(id); };
   var vib = function () { try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {} };
+  var score = function (e) { return e.z ? 0 : 60 - 2 * e.d + 5 * e.a; };
+  var curIdx = function () { return S.stage === 3 ? 1 : S.stage - 1; };
 
-  function render(side, bump) {
-    var s = S[side];
-    var p1 = 60 - 2 * s.d, p2 = 5 * s.a;
-    var total = s.z ? 0 : p1 + p2;
-    var t = $(side + '-total');
-    t.textContent = fmt(total);
-    if (bump) { t.classList.remove('bump'); void t.offsetWidth; t.classList.add('bump'); }
+  function totals(side) {
+    var e = S[side].e;
+    var s1 = score(e[0]);
+    var s2 = S.stage >= 2 ? score(e[1]) : null;
+    return { s1: s1, s2: s2, sum: s1 + (s2 === null ? 0 : s2) };
+  }
+
+  function renderSide(side, bump) {
+    var idx = curIdx();
+    var e = S[side].e[idx];
+    var locked = S.stage === 3;
+    var t = totals(side);
+    var cur = score(e);
+    var p1 = 60 - 2 * e.d, p2 = 5 * e.a;
+
+    var big = $(side + '-total');
+    big.textContent = fmt(locked ? t.sum : cur);
+    $(side + '-tl').textContent = locked ? '兩套合計' : '第' + (idx + 1) + '套';
+    if (bump) { big.classList.remove('bump'); void big.offsetWidth; big.classList.add('bump'); }
+
+    $(side + '-s1').textContent = fmt(t.s1);
+    $(side + '-s2').textContent = t.s2 === null ? '—' : fmt(t.s2);
+    $(side + '-sum').textContent = fmt(t.sum);
+    $(side + '-c1').classList.toggle('cur', !locked && idx === 0);
+    $(side + '-c2').classList.toggle('cur', !locked && idx === 1);
+
     $(side + '-p1').textContent = fmt(p1);
     $(side + '-p2').textContent = fmt(p2);
     $(side + '-m1').style.width = (p1 / 60 * 100) + '%';
     $(side + '-m2').style.width = (p2 / 40 * 100) + '%';
-    $(side + '-dn').textContent = '已扣 ' + s.d + ' 次';
-    $(side + '-an').textContent = '已加 ' + s.a + ' 次';
-    $(side + '-ded').disabled = s.z || s.d >= MAX_D;
-    $(side + '-add').disabled = s.z || s.a >= MAX_A;
-    $(side + '-undo').disabled = s.z || s.h.length === 0;
+    $(side + '-dn').textContent = '已扣 ' + e.d + ' 次';
+    $(side + '-an').textContent = '已加 ' + e.a + ' 次';
+    $(side + '-ded').disabled = locked || e.z || e.d >= MAX_D;
+    $(side + '-add').disabled = locked || e.z || e.a >= MAX_A;
+    $(side + '-undo').disabled = locked || e.z || e.h.length === 0;
     var z = $(side + '-zero');
-    z.textContent = s.z ? '取消零分' : '零分 0';
-    z.classList.toggle('on', s.z);
-    $(side + '-tag').hidden = !s.z;
-    document.querySelector('.panel[data-side="' + side + '"]').classList.toggle('zeroed', s.z);
+    z.textContent = e.z ? '取消零分' : '零分 0';
+    z.classList.toggle('on', e.z);
+    z.disabled = locked;
+    $(side + '-tag').hidden = locked || !e.z;
+    var panel = document.querySelector('.panel[data-side="' + side + '"]');
+    panel.classList.toggle('zeroed', !locked && e.z);
+    panel.classList.toggle('locked', locked);
   }
 
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest('button[data-act]');
-    if (!btn) return;
+  function renderCtrl() {
+    var st = S.stage;
+    $('st1').className = st === 1 ? 'on' : 'done';
+    $('st2').className = st === 2 ? 'on' : (st > 2 ? 'done' : '');
+    $('st3').className = st === 3 ? 'on' : '';
+
+    var next = $('next'), back = $('back'), res = $('result');
+    next.hidden = st === 3;
+    next.textContent = st === 1 ? '完成第1套 →' : '完成第2套 · 結算';
+    back.hidden = st === 1;
+    back.textContent = st === 2 ? '← 回第1套' : '← 返回修改';
+
+    var rt = totals('red').sum, bt = totals('blue').sum;
+    var winner = st === 3 ? (rt > bt ? 'red' : (bt > rt ? 'blue' : 'tie')) : null;
+    res.hidden = st !== 3;
+    if (st === 3) {
+      res.className = 'result ' + winner;
+      res.textContent = (winner === 'tie' ? '平手' : (winner === 'red' ? '紅方勝' : '藍方勝')) +
+        '　' + fmt(rt) + ' : ' + fmt(bt);
+    }
+    ['red', 'blue'].forEach(function (side) {
+      var isWin = winner === side;
+      $(side + '-win').hidden = !isWin;
+      document.querySelector('.panel[data-side="' + side + '"]').classList.toggle('win', isWin);
+    });
+  }
+
+  function renderAll(bump) { renderSide('red', bump); renderSide('blue', bump); renderCtrl(); }
+
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-act]');
+    if (!btn || S.stage === 3) return;
     var side = btn.closest('.panel').getAttribute('data-side');
-    var s = S[side], act = btn.getAttribute('data-act');
-    if (act === 'ded' && !s.z && s.d < MAX_D) { s.d++; s.h.push('d'); }
-    else if (act === 'add' && !s.z && s.a < MAX_A) { s.a++; s.h.push('a'); }
-    else if (act === 'undo' && !s.z && s.h.length) { var last = s.h.pop(); if (last === 'd') s.d--; else s.a--; }
-    else if (act === 'zero') { s.z = !s.z; }
+    var e = S[side].e[curIdx()], act = btn.getAttribute('data-act');
+    if (act === 'ded' && !e.z && e.d < MAX_D) { e.d++; e.h.push('d'); }
+    else if (act === 'add' && !e.z && e.a < MAX_A) { e.a++; e.h.push('a'); }
+    else if (act === 'undo' && !e.z && e.h.length) { var last = e.h.pop(); if (last === 'd') e.d--; else e.a--; }
+    else if (act === 'zero') { e.z = !e.z; }
     else return;
     vib();
     persist();
-    render(side, true);
+    renderSide(side, true);
+    renderCtrl();
+  });
+
+  $('next').addEventListener('click', function () {
+    if (S.stage < 3) { S.stage++; vib(); persist(); renderAll(true); }
+  });
+  $('back').addEventListener('click', function () {
+    if (S.stage > 1) { S.stage--; vib(); persist(); renderAll(true); }
   });
 
   var resetBtn = $('reset'), resetTimer = null;
@@ -351,19 +490,19 @@
       resetBtn.textContent = '再按一次確認';
       resetTimer = setTimeout(function () {
         resetBtn.classList.remove('confirm');
-        resetBtn.textContent = '全部重置';
+        resetBtn.textContent = '新一回合';
       }, 3000);
       return;
     }
     clearTimeout(resetTimer);
     resetBtn.classList.remove('confirm');
-    resetBtn.textContent = '全部重置';
-    S.red = fresh(); S.blue = fresh();
+    resetBtn.textContent = '新一回合';
+    S = fresh();
     persist();
-    render('red', true); render('blue', true);
+    renderAll(true);
   });
 
-  render('red'); render('blue');
+  renderAll(false);
 
   // keep the screen on while scoring (optional, may be refused)
   var lock = null;
